@@ -77,3 +77,4 @@ services:
 
     environment:
       SEARXNG_BASE_URL: "${SEARXNG_BASE_URL:-https://search.yourwifi.cz/}"
+      SEARXNG_SECRET: "${SEARXNG_SECRET:?Set SEARXNG_SECRET in docker/.env}"
