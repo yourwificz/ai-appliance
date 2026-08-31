@@ -10,7 +10,7 @@ Current hardware configuration of the AI appliance.
   - 18 cores / 36 threads each
   - 36 physical cores / 72 threads total
 - 384 GB DDR4 ECC RDIMM
-- Dell BOSS-S1 boot storage
+- 2× Dell SSD in RAID1 for system / hypervisor storage
 - XCP-ng 8.3 hypervisor
 
 ## GPU
