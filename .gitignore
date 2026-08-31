@@ -1,4 +1,36 @@
+# Python
 __pycache__/
-*.pyc
-.DS_Store
+*.py[cod]
+*.pyo
+*.pyd
+.venv/
+venv/
+
+# Environment files and secrets
+.env
+.env.*
+!.env.example
 docker/.env
+*.pem
+*.key
+*.pfx
+*.p12
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+*.swp
+*~
+
+# Benchmark output
+benchmark-results/
+results/
+
+# IDE / editor
+.vscode/
+.idea/
+
+# OS metadata
+.DS_Store
+Thumbs.db
