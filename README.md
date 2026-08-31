@@ -9,161 +9,322 @@
 
 ## Overview
 
-**AI Appliance** is an open engineering project documenting the design, implementation and optimization of a production-grade, self-hosted AI platform.
+**AI Appliance** is an open engineering project documenting the design, implementation, benchmarking, and optimization of a self-hosted AI environment for real-world IT operations.
 
-Originally developed as the internal AI environment for **YOURWiFi** and **EXTIT**, the project is used daily to support engineering, software development, IT operations, documentation, knowledge management and business processes.
+The project originated as the internal AI platform for **YOURWiFi** and **EXTIT** and is being developed around actual operational use cases including engineering, software development, IT operations, documentation, knowledge management, research, and business processes.
 
-Rather than building a proof-of-concept, the goal is to create a practical AI appliance capable of supporting real business operations while openly documenting architectural decisions, benchmarks, optimizations and lessons learned.
+The objective is not to design an idealized reference architecture on paper. The appliance is built, operated, measured, changed, and documented as it evolves.
 
----
-
-# Project Goals
-
-- Build a production-ready private AI appliance
-- Keep company knowledge under organizational control
-- Leverage enterprise hardware using open technologies
-- Integrate AI into everyday IT operations
-- Benchmark every architectural decision
-- Share practical engineering experience
-- Provide a reproducible reference implementation
+This repository publishes the parts of that work that are useful and reproducible: architecture, hardware configuration, deployment examples, tuning, benchmark methodology, measured results, and lessons learned.
 
 ---
 
-# Reference Hardware
+## Project Goals
 
-The current reference platform (**Generation 1**) consists of the following hardware.
+- Build a practical private AI platform for day-to-day IT operations
+- Keep organizational knowledge and sensitive data under organizational control
+- Reuse capable enterprise hardware where it makes technical and economic sense
+- Prefer open technologies and interoperable standards
+- Integrate AI with existing operational and knowledge systems
+- Benchmark performance-sensitive architectural decisions
+- Document both successful approaches and dead ends
+- Provide a reproducible reference for similar deployments
 
-| Component | Specification |
-|-----------|---------------|
+---
+
+## Reference Platform
+
+The current reference implementation is based on a **Dell PowerEdge R740**.
+
+| Component | Current configuration |
+|---|---|
 | Server | Dell PowerEdge R740 |
-| CPU | 2 × Intel Xeon Gold 6140 (18C / 36T, 2.30 GHz, Turbo 3.70 GHz) |
-| Total CPU Resources | 36 physical cores / 72 logical processors |
+| CPU | 2 × Intel Xeon Gold 6140, 18C / 36T each |
+| CPU resources | 36 physical cores / 72 logical processors |
 | Memory | 384 GB DDR4 ECC RDIMM @ 2666 MT/s |
 | GPUs | 2 × NVIDIA RTX 4000 Ada Generation |
-| GPU Memory | 40 GB GDDR6 ECC (20 GB ×2) |
+| GPU memory | 40 GB GDDR6 ECC total, 20 GB per GPU |
 | Hypervisor | XCP-ng 8.3 |
-| AI Guest OS | Ubuntu Server 24.04 LTS |
-| AI VM Resources | 72 vCPUs, 256 GB RAM |
-| System Storage | Dell BOSS RAID1 SSD |
-| AI Storage | 4 × Samsung 990 EVO Plus 1 TB |
-| RAID | Linux mdadm RAID10 |
-| NVMe Adapter | QNAP QM2-4P-384 *(Glotrends PA41 comparison planned)* |
-| Usable AI Storage | ~2 TB RAID10 |
+| AI guest OS | Ubuntu Server 24.04 LTS |
+| AI VM | 72 vCPUs, ~256 GB RAM |
+| GPU access | PCI passthrough of both GPUs |
+| System storage | 2 × Dell SSD in RAID1 |
+| AI storage | 4 × Samsung 990 EVO Plus 1 TB NVMe |
+| NVMe adapter | QNAP QM2-4P-384 |
+| NVMe adapter uplink | PCIe Gen3 x8 via ASMedia ASM2824 |
+| RAID | Linux `mdadm` RAID10 |
+| Usable AI storage | ~2 TB |
 
-> **Note**
->
-> This hardware represents the current reference implementation. Future generations of the appliance may use different hardware while preserving the overall software architecture.
+Detailed hardware and storage topology is documented in [`HARDWARE.md`](HARDWARE.md).
 
 ---
 
-# Software Stack
+## Software Stack
 
-## Infrastructure
+### Infrastructure
 
 - XCP-ng 8.3
 - Ubuntu Server 24.04 LTS
 - Docker
+- Linux `mdadm`
+- ext4
 
-## AI
+### AI Platform
 
 - Ollama
 - Open WebUI
 - Model Context Protocol (MCP)
-- SearXNG
 
-## Authentication
+### Search and Knowledge
+
+- SearXNG
+- Outline
+- Twenty CRM
+
+### Authentication
 
 - Microsoft Entra ID
-- OpenID Connect (Single Sign-On)
+- OpenID Connect
+
+The current application and infrastructure architecture is documented in [`ARCHITECTURE.md`](ARCHITECTURE.md).
 
 ---
 
-# Integration Status
+## Current Architecture
+
+```text
+Users
+  │
+  ▼
+HTTPS / Reverse Proxy
+  │
+  ▼
+Open WebUI
+  │
+  ├── Microsoft Entra ID
+  │      └── Authentication
+  │
+  ├── Ollama
+  │      └── Local LLM inference
+  │
+  ├── SearXNG
+  │      └── Web search
+  │
+  └── MCP
+         ├── Outline
+         └── Twenty CRM
+```
+
+Ollama runs directly inside the Ubuntu VM. Open WebUI and SearXNG run as Docker containers.
+
+Both NVIDIA GPUs are passed directly from XCP-ng to the AI VM.
+
+---
+
+## Integration Status
 
 | Component | Status | Notes |
-|-----------|:------:|-------|
-| Ollama | ✅ | Production |
-| Open WebUI | ✅ | Production |
+|---|:---:|---|
+| Ollama | ✅ | Working |
+| Open WebUI | ✅ | Working |
 | Microsoft Entra ID SSO | ✅ | OpenID Connect authentication |
-| SearXNG | ✅ | Integrated *(temporary Open WebUI workaround)* |
-| Outline MCP | ✅ | Primary internal knowledge base |
-| Twenty CRM MCP | ✅ | Production |
-| Plane MCP | ⏸️ | Requires Plane Business plan (currently using Pro) |
-| Xen Orchestra MCP | ⏸️ | Postponed until OAuth authentication is supported |
-| Zabbix MCP | 🚧 | Awaiting native MCP support (currently on the Zabbix roadmap) |
+| SearXNG | ✅ | Integrated with Open WebUI |
+| Outline MCP | ✅ | Primary internal documentation source |
+| Twenty CRM MCP | ✅ | CRM integration |
+| Plane MCP | ⏸️ | Technically validated; requires Plane Business, currently using Pro |
+| Xen Orchestra MCP | ⏸️ | Postponed until an acceptable OAuth authentication path is available |
+| Zabbix MCP | 🚧 | Awaiting native MCP support |
 | OIKB | 🚧 | Planned evaluation |
 
----
+### SearXNG note
 
-# Current Capabilities
-
-- Private AI assistant
-- Internal knowledge assistant
-- Enterprise authentication
-- Local LLM inference
-- Web search
-- Technical documentation search
-- CRM information lookup
-- GPU-accelerated inference
-- Multi-model environment
+The current Open WebUI release requires a temporary web-loader workaround in this deployment. Search itself is operational, but upstream search engines may independently apply CAPTCHA or rate limiting.
 
 ---
 
-# Storage Architecture
+## Current Capabilities
 
-The current storage architecture consists of:
+The appliance currently provides:
 
-- Dell BOSS RAID1 for the hypervisor
-- Linux mdadm RAID10 for AI workloads
-- Local EXT Storage Repository
-- Ubuntu ext4 data volume
-- Dedicated AI storage for:
-  - Ollama models
-  - Docker data root
-  - SearXNG data
-  - AI datasets
+- private local LLM inference,
+- general-purpose internal AI assistance,
+- organizational knowledge retrieval,
+- Microsoft Entra ID authentication,
+- web search through SearXNG,
+- internal documentation access through Outline,
+- CRM lookup through Twenty,
+- GPU-accelerated inference,
+- multi-model operation,
+- MCP-based system integration.
 
-Storage performance, architecture decisions and benchmarking are documented throughout the project.
-
----
-
-# Design Principles
-
-- **Privacy First** — Company data stays under your control.
-- **Open Technologies** — Minimize vendor lock-in.
-- **Measure Before Optimizing** — Every optimization is benchmarked.
-- **Reproducible Infrastructure** — Every configuration should be reproducible.
-- **Production Before Perfection** — Solve real operational problems.
-- **Document the Journey** — Publish both successes and failures.
+The current user-facing Open WebUI setup intentionally remains simple, with separate **Assistant** and **Knowledge** interfaces rather than a large collection of specialized agents.
 
 ---
 
-# Repository Structure
+## Storage Architecture
+
+AI workloads are stored on a four-drive NVMe RAID10 array.
+
+```text
+4 × Samsung 990 EVO Plus
+          │
+          ▼
+   QNAP QM2-4P-384
+          │
+          ▼
+     ASM2824 switch
+          │
+          ▼
+      PCIe Gen3 x8
+          │
+          ▼
+     mdadm RAID10
+        /dev/md0
+          │
+          ▼
+     XCP-ng EXT SR
+          │
+          ▼
+         VHD
+          │
+          ▼
+   Xen virtual disk
+          │
+          ▼
+     Ubuntu AI VM
+```
+
+Persistent AI-related data is stored under `/mnt/ai-data`, including:
+
+- Ollama models,
+- Docker data,
+- Open WebUI data,
+- SearXNG configuration and data.
+
+Storage benchmarking has also exposed a significant difference between host-level NVMe performance and storage throughput observed inside the Xen guest. The investigation and measurements are documented in [`benchmarks/storage.md`](benchmarks/storage.md).
+
+---
+
+## Benchmarks
+
+Measured results are published when the test setup is sufficiently documented to make the numbers meaningful.
+
+Current benchmark areas include:
+
+- Ollama model inference and loading,
+- NVMe and RAID10 performance,
+- XCP-ng storage virtualization,
+- host-to-guest storage performance.
+
+See:
+
+- [`benchmarks/ollama.md`](benchmarks/ollama.md)
+- [`benchmarks/storage.md`](benchmarks/storage.md)
+
+Benchmark scripts are kept under [`scripts/`](scripts/).
+
+The aim is not to produce synthetic benchmark leaderboards, but to understand how architectural decisions affect the performance of the complete appliance.
+
+---
+
+## Configuration and Deployment
+
+The repository contains selected configuration from the running appliance where it is useful and safe to publish.
+
+### Ollama
+
+Current systemd tuning:
+
+[`configs/ollama/override.conf`](configs/ollama/override.conf)
+
+### Open WebUI and SearXNG
+
+Docker deployment:
+
+[`docker/docker-compose.yaml`](docker/docker-compose.yaml)
+
+Example environment configuration:
+
+[`docker/.env.example`](docker/.env.example)
+
+### SearXNG
+
+Sanitized configuration example:
+
+[`configs/searxng/settings.yml.example`](configs/searxng/settings.yml.example)
+
+Production credentials, encryption keys, OAuth secrets, and other sensitive values are intentionally excluded from the repository.
+
+---
+
+## Repository Structure
+
+Only directories containing actual project artifacts are created.
 
 ```text
 .
-├── benchmarks/        # Benchmark results and methodology
-├── configs/           # Configuration examples
-├── diagrams/          # Architecture diagrams
-├── docker/            # Docker Compose files
-├── images/            # Screenshots and illustrations
-├── scripts/           # Automation and benchmarking scripts
-├── tools/             # Helper utilities
+├── benchmarks/
+│   ├── ollama.md
+│   └── storage.md
+├── configs/
+│   ├── ollama/
+│   │   └── override.conf
+│   └── searxng/
+│       └── settings.yml.example
+├── docker/
+│   ├── docker-compose.yaml
+│   └── .env.example
+├── scripts/
+│   ├── ollama-bench.sh
+│   └── storage-bench.sh
+├── ARCHITECTURE.md
+├── CONTRIBUTING.md
+├── HARDWARE.md
 ├── LICENSE
 ├── README.md
 └── .gitignore
 ```
 
+The repository structure will grow only as new artifacts are actually added.
+
 ---
 
-# Roadmap
+## Design Principles
 
-## Core Platform
+### Privacy First
 
-- [x] Enterprise hardware platform
-- [x] GPU acceleration
+Company data should remain under organizational control wherever practical.
+
+### Open Technologies
+
+Prefer open technologies, documented interfaces, and interoperable standards over unnecessary platform lock-in.
+
+### Measure Before Optimizing
+
+Performance assumptions are useful starting points, not conclusions. Important changes should be measured.
+
+### Production Before Perfection
+
+Solve real operational problems first and improve the architecture based on actual use.
+
+### Reproducibility
+
+Publish enough configuration and methodology for useful results to be independently understood or reproduced.
+
+### Document the Journey
+
+Unexpected limitations, failed approaches, and architectural compromises are part of the engineering record.
+
+---
+
+## Roadmap
+
+### Core Platform
+
+- [x] Enterprise server platform
+- [x] GPU passthrough
 - [x] XCP-ng virtualization
-- [x] Ubuntu AI virtual machine
+- [x] Ubuntu AI VM
 - [x] Ollama
 - [x] Open WebUI
 - [x] Microsoft Entra ID authentication
@@ -171,59 +332,43 @@ Storage performance, architecture decisions and benchmarking are documented thro
 - [x] Outline MCP integration
 - [x] Twenty CRM MCP integration
 
-## Platform Optimization
+### Platform Development
 
-- [ ] Storage optimization
-- [ ] AI model optimization
-- [ ] Automated benchmark suite
-- [ ] OIKB evaluation
-- [ ] Performance tuning
+- [ ] Continue storage performance investigation
+- [ ] Expand reproducible benchmark coverage
+- [ ] Evaluate embedding models for Czech/English knowledge retrieval
+- [ ] Build and evaluate the first dedicated RAG knowledge collection
+- [ ] Evaluate OIKB
+- [ ] Perform multi-user concurrency testing
+- [ ] Continue model and inference optimization
 
-## Enterprise Integrations
+### Integrations
 
-- [ ] Plane MCP *(Business license required)*
-- [ ] Xen Orchestra MCP *(pending OAuth support)*
-- [ ] Zabbix MCP *(awaiting native MCP support)*
+- [ ] Plane MCP if licensing permits
+- [ ] Xen Orchestra MCP when suitable OAuth support is available
+- [ ] Zabbix MCP when native support becomes available
 - [ ] Microsoft 365 knowledge connectors
-- [ ] Additional MCP integrations
+- [ ] Additional operational MCP integrations where useful
 
 ---
 
-# Benchmarks
+## Contributing
 
-This repository publishes reproducible benchmarks covering:
+Contributions, test results, corrections, and practical deployment experience are welcome.
 
-- Large Language Models
-- GPU performance
-- Storage
-- Virtualization
-- AI inference
-- MCP integrations
-
-Whenever possible, benchmark methodology and raw data are published alongside the results.
+See [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ---
 
-# Philosophy
+## Related Resources
 
-AI Appliance follows a few simple principles:
+### WiFiLab
 
-- Measure before optimizing.
-- Build for production, not demonstrations.
-- Share failures as well as successes.
-- Prefer open standards over proprietary solutions.
-- Document engineering decisions.
-- Build systems that others can reproduce.
+**WiFiLab by YOURWiFi** is the engineering initiative under which this project and related technical work are published.
 
----
+Engineering journal: **coming soon**
 
-# Related Resources
-
-### Engineering Journal
-
-**WiFiLab** *(coming soon)*
-
-### Company
+### YOURWiFi
 
 https://yourwifi.cz
 
@@ -233,18 +378,18 @@ https://github.com/yourwificz
 
 ---
 
-# License
+## License
 
-The source code in this repository is licensed under the **Apache License 2.0**.
+Source code in this repository is licensed under the **Apache License 2.0**. See [`LICENSE`](LICENSE).
 
-Documentation, benchmark results and other non-code content may use different licenses as specified in their respective directories.
+Documentation, benchmark data, and other non-code material may be published under separate terms where explicitly stated.
 
-The **YOURWiFi**, **EXTIT** and **WiFiLab** names and logos are trademarks of their respective owners and are not covered by this license.
+The **YOURWiFi**, **EXTIT**, and **WiFiLab** names and logos are not granted for use under the Apache License.
 
 ---
 
-# About
+## About
 
-AI Appliance is developed by **YOURWiFi** as the flagship engineering project of **WiFiLab**.
+**AI Appliance** is developed by **YOURWiFi** as part of **WiFiLab by YOURWiFi**.
 
-The objective is to explore, benchmark and document practical approaches to deploying private AI for modern IT operations using enterprise hardware and open technologies.
+The project explores practical approaches to private, self-hosted AI for modern IT operations using enterprise hardware, virtualization, local inference, open technologies, and integrations with real operational systems.
