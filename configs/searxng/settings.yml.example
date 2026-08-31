@@ -1,0 +1,31 @@
+use_default_settings: true
+
+general:
+  instance_name: "AI Appliance SearXNG"
+
+search:
+  safe_search: 0
+  autocomplete: ""
+  default_lang: "auto"
+
+  # JSON output is required for Open WebUI integration.
+  formats:
+    - html
+    - json
+
+server:
+  # Override in production using SEARXNG_BASE_URL.
+  base_url: false
+
+  # Keep disabled unless limiter/Valkey is explicitly configured.
+  limiter: false
+  public_instance: false
+
+  # Never commit the production secret.
+  # Prefer setting SEARXNG_SECRET through the container environment.
+  secret_key: "change-me"
+
+  image_proxy: false
+
+ui:
+  default_theme: simple
