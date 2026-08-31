@@ -19,7 +19,6 @@ This document records measured inference performance of the AI appliance.
 | Model | Cold load | Warm load | Generation |
 |---|---:|---:|---:|
 | Gemma 4 26B | ~30.3 s | ~0.48 s | ~78.5 tok/s |
-| Qwen 3.6 35B Expert | ~43.6 s | ~0.32 s | ~68.3 tok/s |
 | Gemma 4 E4B | — | — | ~75–77 tok/s |
 
 ## Gemma 4 26B — Storage Comparison
